@@ -266,52 +266,40 @@
 
                 seguimientoGpsActivo.value = true;
 
-                const iniciarWatch = (highAccuracy = true) => {
-                    idSeguimientoGps = navigator.geolocation.watchPosition(
-                        (posicion) => {
-                            const lat = posicion.coords.latitude;
-                            const lng = posicion.coords.longitude;
-                            const rumbo = posicion.coords.heading; // Rumbo en grados (0-360)
+                idSeguimientoGps = navigator.geolocation.watchPosition(
+                    (posicion) => {
+                        const lat = posicion.coords.latitude;
+                        const lng = posicion.coords.longitude;
+                        const rumbo = posicion.coords.heading; // Rumbo en grados (0-360)
 
-                            if (marcadorUsuario) {
-                                marcadorUsuario.setLatLng([lat, lng]);
-                                marcadorUsuario.setIcon(crearIconoUsuario(rumbo));
-                            } else {
-                                marcadorUsuario = L.marker([lat, lng], {
-                                    icon: crearIconoUsuario(rumbo),
-                                    zIndexOffset: 1000
-                                }).addTo(mapaLeaflet);
-                                mapaLeaflet.setView([lat, lng], 16);
-                            }
-                        },
-                        (error) => {
-                            console.warn("Error de GPS (alta precisión: " + highAccuracy + "):", error);
-                            
-                            if (error.code === error.PERMISSION_DENIED) {
-                                alert("Permiso de localización denegado. Si estás en modo Incógnito/Invitado o has bloqueado el permiso, actívalo en el candado de la barra de direcciones.");
-                                seguimientoGpsActivo.value = false;
-                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
-                                idSeguimientoGps = null;
-                            } else if (highAccuracy && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
-                                // Fallback a baja precisión (IP/WiFi) si falla en PC
-                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
-                                iniciarWatch(false);
-                            } else {
-                                alert("No se pudo obtener la ubicación GPS.");
-                                seguimientoGpsActivo.value = false;
-                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
-                                idSeguimientoGps = null;
-                            }
-                        },
-                        { 
-                            enableHighAccuracy: highAccuracy,
-                            timeout: 6000, 
-                            maximumAge: 0 
+                        if (marcadorUsuario) {
+                            marcadorUsuario.setLatLng([lat, lng]);
+                            marcadorUsuario.setIcon(crearIconoUsuario(rumbo));
+                        } else {
+                            marcadorUsuario = L.marker([lat, lng], {
+                                icon: crearIconoUsuario(rumbo),
+                                zIndexOffset: 1000
+                            }).addTo(mapaLeaflet);
+                            mapaLeaflet.setView([lat, lng], 16);
                         }
-                    );
-                };
-
-                iniciarWatch(true);
+                    },
+                    (error) => {
+                        console.warn("Error de GPS:", error);
+                        
+                        if (error.code === error.PERMISSION_DENIED) {
+                            alert("Permiso de localización denegado. Por favor, activa el acceso a la ubicación en el candado de la barra de direcciones de tu navegador.");
+                        } else {
+                            alert("No se pudo obtener la ubicación GPS.");
+                        }
+                        
+                        seguimientoGpsActivo.value = false;
+                        if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
+                        idSeguimientoGps = null;
+                    },
+                    { 
+                        enableHighAccuracy: true
+                    }
+                );
             };
 
             const borrarRutaAdministrador = async () => {
