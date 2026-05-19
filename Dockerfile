@@ -12,6 +12,9 @@ FROM richarvey/nginx-php-fpm:3.1.6
 # Copy application code
 COPY . .
 
+# Make scripts executable
+RUN chmod +x /var/www/html/scripts/*.sh
+
 # Copy compiled frontend assets from Stage 1
 COPY --from=frontend-builder /app/public/build ./public/build
 
