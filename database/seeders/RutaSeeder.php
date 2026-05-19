@@ -11,7 +11,7 @@ class RutaSeeder extends Seeder
     public function run(): void
     {
         // Ruta donde se guardan los archivos KML (Reto DSW/BDD)
-        $directorioKml = storage_path('app/kml');
+        $directorioKml = database_path('data/kml');
         
         if (!File::exists($directorioKml)) {
             echo "Aviso: No se encontró el directorio de KML en {$directorioKml}.\n";
