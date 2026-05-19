@@ -40,7 +40,12 @@ class ViewController extends Controller
             'nombre' => 'required|string|max:255',
             'dificultad' => 'required|string',
             'distancia' => 'required|numeric',
+            'trazado' => 'nullable|string',
         ]);
+
+        if (!empty($datosValidados['trazado'])) {
+            $datosValidados['trazado'] = json_decode($datosValidados['trazado'], true);
+        }
 
         Ruta::create($datosValidados);
 
@@ -49,8 +54,8 @@ class ViewController extends Controller
 
     public function edit($id)
     {
-        $rutaParaEditar = Ruta::findOrFail($id);
-        return view('admin.rutas.edit', compact('rutaParaEditar'));
+        $ruta = Ruta::findOrFail($id);
+        return view('admin.rutas.edit', compact('ruta'));
     }
 
     public function update(Request $request, $id)
@@ -61,7 +66,12 @@ class ViewController extends Controller
             'nombre' => 'required|string|max:255',
             'dificultad' => 'required|string',
             'distancia' => 'required|numeric',
+            'trazado' => 'nullable|string',
         ]);
+
+        if (!empty($datosParaActualizar['trazado'])) {
+            $datosParaActualizar['trazado'] = json_decode($datosParaActualizar['trazado'], true);
+        }
 
         $rutaExistente->update($datosParaActualizar);
 

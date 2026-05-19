@@ -27,9 +27,21 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Distancia (km)</label>
-                    <input type="number" step="0.01" name="distancia" placeholder="0.00" 
+                    <input type="number" step="0.01" name="distancia" id="distancia-input" placeholder="0.00" 
                         class="w-full p-3 border rounded-lg dark:bg-gray-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-primary outline-none" required>
                 </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Recorrido de la Ruta</label>
+                    <button type="button" id="clear-map" class="text-xs text-red-500 hover:text-red-700 font-semibold transition hidden">
+                        <i class="fa-solid fa-trash-can"></i> Limpiar recorrido
+                    </button>
+                </div>
+                <div id="map" class="h-80 w-full rounded-lg border border-gray-300 dark:border-gray-600 mb-2 z-10"></div>
+                <p class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-solid fa-info-circle"></i> Haz clic en el mapa sucesivamente para trazar los puntos del camino. La distancia se calculará automáticamente.</p>
+                <input type="hidden" name="trazado" id="trazado-input" value="[]">
             </div>
 
             <div class="flex gap-4 pt-4">
@@ -43,4 +55,72 @@
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mapa = L.map('map').setView([29.0469, -13.5899], 10);
+        L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+        }).addTo(mapa);
+
+        let puntosTrazado = [];
+        let polyline = L.polyline([], { color: '#e11d48', weight: 4 }).addTo(mapa);
+        let marcadores = [];
+
+        const trazadoInput = document.getElementById('trazado-input');
+        const distanciaInput = document.getElementById('distancia-input');
+        const clearBtn = document.getElementById('clear-map');
+
+        function actualizarTrazado() {
+            // Actualizar el input oculto
+            trazadoInput.value = JSON.stringify(puntosTrazado);
+            
+            // Dibujar la línea
+            polyline.setLatLngs(puntosTrazado);
+
+            // Calcular distancia total
+            let distMeters = 0;
+            for (let i = 0; i < puntosTrazado.length - 1; i++) {
+                const p1 = L.latLng(puntosTrazado[i]);
+                const p2 = L.latLng(puntosTrazado[i+1]);
+                distMeters += p1.distanceTo(p2);
+            }
+            const distKm = (distMeters / 1000).toFixed(2);
+            distanciaInput.value = distKm;
+
+            // Mostrar/ocultar botón de limpiar
+            if (puntosTrazado.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        mapa.on('click', function (e) {
+            const lat = parseFloat(e.latlng.lat.toFixed(6));
+            const lng = parseFloat(e.latlng.lng.toFixed(6));
+            
+            puntosTrazado.push([lat, lng]);
+            
+            // Añadir un marcador simple
+            const marker = L.circleMarker([lat, lng], {
+                radius: 5,
+                color: '#e11d48',
+                fillColor: '#e11d48',
+                fillOpacity: 1
+            }).addTo(mapa);
+            
+            marcadores.push(marker);
+            actualizarTrazado();
+        });
+
+        clearBtn.addEventListener('click', function () {
+            puntosTrazado = [];
+            marcadores.forEach(m => mapa.removeLayer(m));
+            marcadores = [];
+            actualizarTrazado();
+        });
+    });
+</script>
 @endsection
