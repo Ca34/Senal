@@ -266,29 +266,52 @@
 
                 seguimientoGpsActivo.value = true;
 
-                idSeguimientoGps = navigator.geolocation.watchPosition(
-                    (posicion) => {
-                        const lat = posicion.coords.latitude;
-                        const lng = posicion.coords.longitude;
-                        const rumbo = posicion.coords.heading; // Rumbo en grados (0-360)
+                const iniciarWatch = (highAccuracy = true) => {
+                    idSeguimientoGps = navigator.geolocation.watchPosition(
+                        (posicion) => {
+                            const lat = posicion.coords.latitude;
+                            const lng = posicion.coords.longitude;
+                            const rumbo = posicion.coords.heading; // Rumbo en grados (0-360)
 
-                        if (marcadorUsuario) {
-                            marcadorUsuario.setLatLng([lat, lng]);
-                            marcadorUsuario.setIcon(crearIconoUsuario(rumbo));
-                        } else {
-                            marcadorUsuario = L.marker([lat, lng], {
-                                icon: crearIconoUsuario(rumbo),
-                                zIndexOffset: 1000
-                            }).addTo(mapaLeaflet);
-                            mapaLeaflet.setView([lat, lng], 16);
+                            if (marcadorUsuario) {
+                                marcadorUsuario.setLatLng([lat, lng]);
+                                marcadorUsuario.setIcon(crearIconoUsuario(rumbo));
+                            } else {
+                                marcadorUsuario = L.marker([lat, lng], {
+                                    icon: crearIconoUsuario(rumbo),
+                                    zIndexOffset: 1000
+                                }).addTo(mapaLeaflet);
+                                mapaLeaflet.setView([lat, lng], 16);
+                            }
+                        },
+                        (error) => {
+                            console.warn("Error de GPS (alta precisión: " + highAccuracy + "):", error);
+                            
+                            if (error.code === error.PERMISSION_DENIED) {
+                                alert("Permiso de localización denegado. Si estás en modo Incógnito/Invitado o has bloqueado el permiso, actívalo en el candado de la barra de direcciones.");
+                                seguimientoGpsActivo.value = false;
+                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
+                                idSeguimientoGps = null;
+                            } else if (highAccuracy && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
+                                // Fallback a baja precisión (IP/WiFi) si falla en PC
+                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
+                                iniciarWatch(false);
+                            } else {
+                                alert("No se pudo obtener la ubicación GPS.");
+                                seguimientoGpsActivo.value = false;
+                                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
+                                idSeguimientoGps = null;
+                            }
+                        },
+                        { 
+                            enableHighAccuracy: highAccuracy,
+                            timeout: 6000, 
+                            maximumAge: 0 
                         }
-                    },
-                    (error) => {
-                        console.error("Error de GPS:", error);
-                        seguimientoGpsActivo.value = false;
-                    },
-                    { enableHighAccuracy: true }
-                );
+                    );
+                };
+
+                iniciarWatch(true);
             };
 
             const borrarRutaAdministrador = async () => {
