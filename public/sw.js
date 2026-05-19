@@ -15,13 +15,15 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Solo interceptar peticiones GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
+    fetch(event.request)
+      .catch(() => {
+        return caches.match(event.request);
       })
   );
 });
