@@ -9,11 +9,17 @@ export default {
         './resources/views/**/*.blade.php',
     ],
 
+    darkMode: 'class',
+
     theme: {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                primary: '#10b981', // Emerald 500
+                darkbg: '#111827',
+            }
         },
     },
 
