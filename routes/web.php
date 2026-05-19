@@ -11,6 +11,8 @@ Route::get('/', function () {
 Route::get('/debug-db', function () {
     return [
         'routes_count' => \App\Models\Ruta::count(),
+        'users_count' => \App\Models\User::count(),
+        'users' => \App\Models\User::select('name', 'email')->get(),
         'kml_dir_exists' => file_exists(database_path('data/kml')),
         'kml_files' => file_exists(database_path('data/kml')) ? array_map('basename', glob(database_path('data/kml/*.kml'))) : [],
     ];
