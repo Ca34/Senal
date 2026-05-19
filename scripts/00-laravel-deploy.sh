@@ -9,9 +9,12 @@ chmod -R 777 /var/www/html/database
 echo "Running Composer..."
 composer install --no-dev --optimize-autoloader --working-dir=/var/www/html
 
-# Migraciones y Seeders (Limpiar y volver a rellenar)
-echo "Running Migrations & Seeders..."
-php artisan migrate:fresh --seed --force
+# Migraciones y Seeders de forma segura para base de datos persistente
+echo "Running Migrations..."
+php artisan migrate --force
+
+echo "Running Seeders..."
+php artisan db:seed --force
 
 # Dar permisos a las carpetas de almacenamiento y caché
 echo "Setting permissions..."

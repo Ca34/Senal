@@ -55,13 +55,15 @@ class RutaSeeder extends Seeder
                         if (str_contains($nombreMinusculas, 'graciosa')) $etiquetasImagen = 'la-graciosa,island';
 
                         // Inserción en la base de datos (Reto DSW)
-                        Ruta::create([
-                            'nombre' => $nombreRuta,
-                            'dificultad' => 'Media',
-                            'distancia' => round(count($trazadoFinal) * 0.05, 2), // Cálculo aproximado
-                            'trazado' => $trazadoFinal,
-                            'imagen' => "https://loremflickr.com/800/600/{$etiquetasImagen}?lock={$contador}"
-                        ]);
+                        Ruta::firstOrCreate(
+                            ['nombre' => $nombreRuta],
+                            [
+                                'dificultad' => 'Media',
+                                'distancia' => round(count($trazadoFinal) * 0.05, 2), // Cálculo aproximado
+                                'trazado' => $trazadoFinal,
+                                'imagen' => "https://loremflickr.com/800/600/{$etiquetasImagen}?lock={$contador}"
+                            ]
+                        );
                         $contador++;
                     }
                 }

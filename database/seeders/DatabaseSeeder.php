@@ -23,16 +23,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Usuarios base para pruebas
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => Hash::make('password'),
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Juan Rafael',
-            'email' => 'juan_curbelo@cifpzonzamas.es',
-            'password' => Hash::make('2daw.pass'),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'juan_curbelo@cifpzonzamas.es'],
+            [
+                'name' => 'Juan Rafael',
+                'password' => Hash::make('2daw.pass'),
+            ]
+        );
 
         // Llamada a los Seeders específicos (Reto DSW)
         $this->call([
