@@ -17,6 +17,7 @@ class RoleSeeder extends Seeder
     {
         // 1. Crear Roles principales
         $rolAdmin = Role::firstOrCreate(['name' => 'admin']);
+        $rolGestor = Role::firstOrCreate(['name' => 'gestor']);
         $rolUsuario = Role::firstOrCreate(['name' => 'usuario']);
 
         // 2. Crear Permisos básicos (Ejemplos para el proyecto)
@@ -25,6 +26,7 @@ class RoleSeeder extends Seeder
 
         // 3. Asignar Permisos a Roles
         $rolAdmin->givePermissionTo($permisoGestionarRutas, $permisoVerContenido);
+        $rolGestor->givePermissionTo($permisoGestionarRutas, $permisoVerContenido);
         $rolUsuario->givePermissionTo($permisoVerContenido);
 
         // 4. Crear Usuarios de prueba con sus roles correspondientes
@@ -38,6 +40,16 @@ class RoleSeeder extends Seeder
             ]
         );
         $admin->assignRole($rolAdmin);
+
+        // Gestor del sistema
+        $gestor = User::firstOrCreate(
+            ['email' => 'gestor@senal.es'],
+            [
+                'name' => 'Gestor Senal',
+                'password' => Hash::make('gestor123'),
+            ]
+        );
+        $gestor->assignRole($rolGestor);
 
         // Usuario normal (Senderista)
         $senderista = User::firstOrCreate(

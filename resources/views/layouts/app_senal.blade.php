@@ -62,6 +62,8 @@
                     <span class="text-sm hidden sm:inline">Hola, {{ auth()->user()->name }}</span>
                     @if(auth()->user()->hasRole('admin'))
                         <span class="bg-yellow-400 text-black text-[10px] px-1 rounded font-bold">ADMIN</span>
+                    @elseif(auth()->user()->hasRole('gestor'))
+                        <span class="bg-blue-500 text-white text-[10px] px-1 rounded font-bold">GESTOR</span>
                     @endif
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf

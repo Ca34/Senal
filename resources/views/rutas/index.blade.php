@@ -8,11 +8,16 @@
             <div class="absolute inset-0 bg-black/50"></div>
             <div class="relative z-10 flex justify-between items-center mb-3">
                 <h2 class="text-2xl font-bold shadow-sm">Catálogo de Rutas</h2>
-                @if(auth()->check() && auth()->user()->hasRole('admin'))
-                    <a href="{{ route('admin.rutas.create') }}" class="bg-primary hover:bg-emerald-600 text-white px-3 py-1 rounded-md text-sm font-bold shadow-md transition">
-                        <i class="fa-solid fa-plus"></i> Nueva
-                    </a>
-                @endif
+                <div class="flex gap-2">
+                    <button @click="exportarAExcel" class="bg-white/20 hover:bg-white/40 border border-white/30 text-white px-3 py-1 rounded-md text-sm font-bold shadow-md transition flex items-center gap-1">
+                        <i class="fa-solid fa-file-excel text-green-400"></i> Excel
+                    </button>
+                    @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('gestor')))
+                        <a href="{{ route('admin.rutas.create') }}" class="bg-primary hover:bg-emerald-600 text-white px-3 py-1 rounded-md text-sm font-bold shadow-md transition">
+                            <i class="fa-solid fa-plus"></i> Nueva
+                        </a>
+                    @endif
+                </div>
             </div>
             <div class="relative z-10">
                 <input type="text" v-model="textoBusqueda" placeholder="Buscar ruta..." 
@@ -95,6 +100,23 @@
                 window.location.href = `/rutas/${id}`;
             };
 
+            const exportarAExcel = () => {
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM para que Excel lea acentos
+                csvContent += "ID;Nombre;Dificultad;Distancia (km)\n";
+                
+                rutasFiltradas.value.forEach(r => {
+                    csvContent += `${r.id};"${r.nombre.replace(/"/g, '""')}";${r.dificultad || 'Media'};${r.distancia}\n`;
+                });
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "catalogo_rutas.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             onMounted(() => {
                 cargarRutasDesdeApi();
                 inicializarMapa();
@@ -106,7 +128,8 @@
                 rutasFiltradas,
                 estaCargando,
                 irADetalle,
-                obtenerImagenRuta
+                obtenerImagenRuta,
+                exportarAExcel
             };
         }
     }).mount('#vue-app');

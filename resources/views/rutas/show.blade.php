@@ -1,6 +1,9 @@
 @extends('layouts.app_senal')
 
 @section('content')
+<!-- html2pdf.js para exportar fichas PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <div id="vue-app" class="relative w-full h-full flex flex-col md:flex-row">
     <!-- Panel Lateral -->
     <div class="w-full md:w-1/4 bg-white dark:bg-gray-800 shadow-xl z-20 flex flex-col h-auto md:h-full overflow-y-auto absolute md:relative bottom-0 max-h-[50%] md:max-h-full transition-all">
@@ -18,16 +21,21 @@
                 </button>
                 <div class="absolute bottom-4 left-4 right-4 z-10 text-white flex justify-between items-end">
                     <h1 class="text-2xl font-bold drop-shadow-lg">@{{ rutaDetalle.nombre }}</h1>
-                    @if(auth()->check() && auth()->user()->hasRole('admin'))
                         <div class="flex gap-2">
-                            <a :href="'/admin/rutas/' + rutaDetalle.id + '/edit'" class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-white/30">
-                                <i class="fa-solid fa-pen-to-square"></i> Editar
-                            </a>
-                            <button @click="borrarRutaAdministrador" class="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-red-400/30">
-                                <i class="fa-solid fa-trash"></i>
+                            <button @click="exportarAPdf" class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-white/30">
+                                <i class="fa-solid fa-file-pdf text-red-400"></i> PDF
                             </button>
+                            @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('gestor')))
+                                <a :href="'/admin/rutas/' + rutaDetalle.id + '/edit'" class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-white/30">
+                                    <i class="fa-solid fa-pen-to-square"></i> Editar
+                                </a>
+                                @if(auth()->user()->hasRole('admin'))
+                                    <button @click="borrarRutaAdministrador" class="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-red-400/30">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                @endif
+                            @endif
                         </div>
-                    @endif
                 </div>
             </div>
 
@@ -313,6 +321,67 @@
                 } catch (error) { console.error("Error al borrar:", error); }
             };
 
+            const exportarAPdf = () => {
+                if (!rutaDetalle.value) return;
+
+                const element = document.createElement('div');
+                element.className = 'p-8 bg-white text-gray-800 font-sans';
+                element.style.width = '700px';
+
+                let puntosHtml = '';
+                if (rutaDetalle.value.puntos_interes && rutaDetalle.value.puntos_interes.length > 0) {
+                    puntosHtml = '<h3 style="font-size: 15px; font-weight: bold; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-top: 20px; margin-bottom: 8px;">Puntos de Interés</h3><ul style="padding-left: 20px; margin-top: 0; font-size: 13px; color: #4b5563;">';
+                    rutaDetalle.value.puntos_interes.forEach(p => {
+                        puntosHtml += `<li style="margin-bottom: 4px;"><strong>${p.nombre}</strong>${p.descripcion ? ' - ' + p.descripcion : ''}</li>`;
+                    });
+                    puntosHtml += '</ul>';
+                }
+
+                element.innerHTML = `
+                    <div style="border-bottom: 3px solid #10b981; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: bold; color: #111827; margin: 0;">Senal - Ficha de Sendero</h1>
+                            <p style="font-size: 12px; color: #6b7280; margin: 2px 0 0 0;">Aplicación de Senderismo y Georreferenciación de Lanzarote</p>
+                        </div>
+                        <span style="font-size: 14px; font-weight: bold; color: #10b981;">LANZAROTE</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h2 style="font-size: 20px; font-weight: bold; color: #10b981; margin-top: 0; margin-bottom: 6px;">\${rutaDetalle.value.nombre}</h2>
+                        <div style="display: flex; gap: 20px; font-size: 14px; color: #374151; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
+                            <span><strong>Dificultad:</strong> \${rutaDetalle.value.dificultad || 'Media'}</span>
+                            <span><strong>Distancia:</strong> \${rutaDetalle.value.distancia} km</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
+                        <h3 style="font-size: 14px; font-weight: bold; color: #065f46; margin-top: 0; margin-bottom: 8px;">Condiciones del Clima (Real-time)</h3>
+                        <div style="display: flex; gap: 20px; font-size: 13px; color: #047857;">
+                            <div>Temperatura: <strong>\${datosClima.value.temperatura}°C</strong></div>
+                            <div>Viento: <strong>\${datosClima.value.viento} km/h</strong></div>
+                            <div>Lluvia: <strong>\${datosClima.value.lluvia}%</strong></div>
+                            <div>Calima: <strong>\${datosClima.value.calima}</strong></div>
+                        </div>
+                    </div>
+
+                    \${puntosHtml}
+
+                    <div style="margin-top: 40px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+                        Documento oficial generado dinámicamente desde Senal - PWA de Senderismo.
+                    </div>
+                `;
+
+                const opt = {
+                    margin:       15,
+                    filename:     `ficha_\${rutaDetalle.value.nombre.toLowerCase().replace(/\\s+/g, '_')}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().from(element).set(opt).save();
+            };
+
             onMounted(() => {
                 inicializarMapa();
                 cargarDetalleRuta();
@@ -329,7 +398,8 @@
                 seguimientoGpsActivo,
                 alternarSeguimientoGps,
                 obtenerImagenFondo,
-                borrarRutaAdministrador
+                borrarRutaAdministrador,
+                exportarAPdf
             };
         }
     }).mount('#vue-app');
