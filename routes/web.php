@@ -8,6 +8,14 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/debug-db', function () {
+    return [
+        'routes_count' => \App\Models\Ruta::count(),
+        'kml_dir_exists' => file_exists(database_path('data/kml')),
+        'kml_files' => file_exists(database_path('data/kml')) ? array_map('basename', glob(database_path('data/kml/*.kml'))) : [],
+    ];
+});
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');
