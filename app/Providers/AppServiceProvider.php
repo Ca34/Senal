@@ -21,8 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(Router $router): void
     {
-        Paginator::useBootstrapFive(); // <---
-        $router->aliasMiddleware('role',
-\Spatie\Permission\Middleware\RoleMiddleware::class);
+        if (config('app.env') === 'production') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
+        Paginator::useBootstrapFive();
+        $router->aliasMiddleware('role', \Spatie\Permission\Middleware\RoleMiddleware::class);
     }
 }

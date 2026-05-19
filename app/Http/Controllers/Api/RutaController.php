@@ -8,16 +8,23 @@ use Illuminate\Http\Request;
 
 class RutaController extends Controller
 {
+    /**
+     * Reto DSW: API REST para obtener todas las rutas.
+     * Solo seleccionamos campos básicos para optimizar la carga inicial (Reto Green IT).
+     */
     public function index()
     {
-        // Devuelve lista sin el trazado completo para no sobrecargar
-        $rutas = Ruta::select('id', 'nombre', 'dificultad', 'distancia')->get();
-        return response()->json($rutas);
+        $listaRutas = Ruta::select('id', 'nombre', 'dificultad', 'distancia', 'imagen')->get();
+        return response()->json($listaRutas);
     }
 
+    /**
+     * Reto DSW: API REST para obtener el detalle completo de una ruta.
+     * Incluimos el 'trazado' (KML procesado) y relaciones Eloquent (Puntos de Interés y Valoraciones).
+     */
     public function show($id)
     {
-        $ruta = Ruta::with(['puntosInteres.categoria', 'valoraciones.user'])->findOrFail($id);
-        return response()->json($ruta);
+        $detalleRuta = Ruta::with(['puntosInteres.categoria', 'valoraciones.user'])->findOrFail($id);
+        return response()->json($detalleRuta);
     }
 }

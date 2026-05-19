@@ -10,53 +10,59 @@ class RutaSeeder extends Seeder
 {
     public function run(): void
     {
-        $kmlDir = storage_path('app/kml');
-        if (!File::exists($kmlDir)) {
-            echo "Directorio de KML no encontrado.\n";
+        // Ruta donde se guardan los archivos KML (Reto DSW/BDD)
+        $directorioKml = storage_path('app/kml');
+        
+        if (!File::exists($directorioKml)) {
+            echo "Aviso: No se encontró el directorio de KML en {$directorioKml}.\n";
             return;
         }
 
-        $files = File::files($kmlDir);
+        $archivos = File::files($directorioKml);
+        $contador = 1;
 
-        $index = 1;
-        foreach ($files as $file) {
-            if (strtolower($file->getExtension()) === 'kml') {
-                $content = File::get($file->getPathname());
+        foreach ($archivos as $archivo) {
+            if (strtolower($archivo->getExtension()) === 'kml') {
+                $contenido = File::get($archivo->getPathname());
                 
-                preg_match('/<name>(.*?)<\/name>/s', $content, $nameMatches);
-                $name = isset($nameMatches[1]) ? trim(str_replace('.kml', '', $nameMatches[1])) : 'Ruta ' . $index;
+                // Extraer el nombre de la ruta desde el XML del KML
+                preg_match('/<name>(.*?)<\/name>/s', $contenido, $coincidenciasNombre);
+                $nombreRuta = isset($coincidenciasNombre[1]) ? trim(str_replace('.kml', '', $coincidenciasNombre[1])) : 'Ruta ' . $contador;
                 
-                preg_match('/<coordinates>(.*?)<\/coordinates>/s', $content, $coordMatches);
+                // Extraer las coordenadas del trazado
+                preg_match('/<coordinates>(.*?)<\/coordinates>/s', $contenido, $coincidenciasCoord);
                 
-                if (isset($coordMatches[1])) {
-                    $coordsString = trim($coordMatches[1]);
-                    $points = preg_split('/\s+/', $coordsString);
+                if (isset($coincidenciasCoord[1])) {
+                    $stringCoordenadas = trim($coincidenciasCoord[1]);
+                    $puntosBrutos = preg_split('/\s+/', $stringCoordenadas);
                     
-                    $trazado = [];
-                    foreach ($points as $point) {
-                        $parts = explode(',', $point);
-                        if (count($parts) >= 2) {
-                            $trazado[] = [(float)$parts[1], (float)$parts[0]]; 
+                    $trazadoFinal = [];
+                    foreach ($puntosBrutos as $punto) {
+                        $partes = explode(',', $punto);
+                        if (count($partes) >= 2) {
+                            // Guardamos como [Latitud, Longitud] para Leaflet (Reto DOR)
+                            $trazadoFinal[] = [(float)$partes[1], (float)$partes[0]]; 
                         }
                     }
                     
-                    if (count($trazado) > 0) {
-                        $keywords = 'lanzarote,hiking';
-                        $nombreLow = strtolower($name);
-                        if (str_contains($nombreLow, 'volcan') || str_contains($nombreLow, 'corona') || str_contains($nombreLow, 'caldera')) $keywords = 'lanzarote,volcano';
-                        if (str_contains($nombreLow, 'costa') || str_contains($nombreLow, 'playa') || str_contains($nombreLow, 'litoral') || str_contains($nombreLow, 'papagayo')) $keywords = 'lanzarote,coast,ocean';
-                        if (str_contains($nombreLow, 'teguise') || str_contains($nombreLow, 'yaiza') || str_contains($nombreLow, 'tias')) $keywords = 'lanzarote,village,white';
-                        if (str_contains($nombreLow, 'geria')) $keywords = 'lanzarote,vineyard,volcano';
-                        if (str_contains($nombreLow, 'graciosa')) $keywords = 'la-graciosa,island,beach';
+                    if (count($trazadoFinal) > 0) {
+                        // Lógica de asignación de imágenes según el nombre (Reto Green IT / Contexto)
+                        $etiquetasImagen = 'lanzarote,hiking';
+                        $nombreMinusculas = strtolower($nombreRuta);
+                        
+                        if (str_contains($nombreMinusculas, 'volcan') || str_contains($nombreMinusculas, 'corona')) $etiquetasImagen = 'lanzarote,volcano';
+                        if (str_contains($nombreMinusculas, 'costa') || str_contains($nombreMinusculas, 'playa')) $etiquetasImagen = 'lanzarote,coast,ocean';
+                        if (str_contains($nombreMinusculas, 'graciosa')) $etiquetasImagen = 'la-graciosa,island';
 
+                        // Inserción en la base de datos (Reto DSW)
                         Ruta::create([
-                            'nombre' => $name,
+                            'nombre' => $nombreRuta,
                             'dificultad' => 'Media',
-                            'distancia' => round(count($trazado) * 0.05, 2),
-                            'trazado' => $trazado,
-                            'imagen' => "https://loremflickr.com/800/600/{$keywords}?lock={$index}"
+                            'distancia' => round(count($trazadoFinal) * 0.05, 2), // Cálculo aproximado
+                            'trazado' => $trazadoFinal,
+                            'imagen' => "https://loremflickr.com/800/600/{$etiquetasImagen}?lock={$contador}"
                         ]);
-                        $index++;
+                        $contador++;
                     }
                 }
             }

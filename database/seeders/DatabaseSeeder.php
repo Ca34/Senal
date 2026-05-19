@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Usuarios base para pruebas
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -33,24 +34,10 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('2daw.pass'),
         ]);
 
+        // Llamada a los Seeders específicos (Reto DSW)
         $this->call([
             RutaSeeder::class,
+            RoleSeeder::class, // Centralizamos la gestión de roles aquí
         ]);
-
-        // Roles and permissions
-        $admin = Role::firstOrCreate(['name' => 'admin']);
-        $editor = Role::firstOrCreate(['name' => 'editor']);
-
-        $createPost = Permission::firstOrCreate(['name' => 'create post']);
-        $editPost = Permission::firstOrCreate(['name' => 'edit post']);
-        $deletePost = Permission::firstOrCreate(['name' => 'delete post']);
-
-        $admin->givePermissionTo($createPost, $editPost, $deletePost);
-        $editor->givePermissionTo($editPost);
-
-        $user = User::where('email', 'juan_curbelo@cifpzonzamas.es')->first();
-        if ($user) {
-            $user->assignRole('admin');
-        }
     }
 }

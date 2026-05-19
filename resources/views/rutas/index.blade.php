@@ -15,16 +15,16 @@
                 @endif
             </div>
             <div class="relative z-10">
-                <input type="text" v-model="searchQuery" placeholder="Buscar ruta..." 
+                <input type="text" v-model="textoBusqueda" placeholder="Buscar ruta..." 
                     class="w-full p-2 border rounded-md bg-white/90 text-black dark:bg-gray-800/90 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500">
             </div>
         </div>
         <div class="flex-grow overflow-y-auto p-2">
-            <div v-if="loading" class="p-4 text-center text-gray-500">Cargando rutas...</div>
-            <div v-for="ruta in filteredRutas" :key="ruta.id" 
+            <div v-if="estaCargando" class="p-4 text-center text-gray-500">Cargando rutas...</div>
+            <div v-for="ruta in rutasFiltradas" :key="ruta.id" 
                 class="mb-3 border rounded-lg cursor-pointer overflow-hidden bg-white dark:bg-gray-800 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
-                @click="verDetalle(ruta.id)">
-                <div class="h-24 bg-cover bg-center" :style="{ backgroundImage: 'url(' + getRutaImagen(ruta) + ')' }"></div>
+                @click="irADetalle(ruta.id)">
+                <div class="h-24 bg-cover bg-center" :style="{ backgroundImage: 'url(' + obtenerImagenRuta(ruta) + ')' }"></div>
                 <div class="p-4">
                     <h3 class="font-semibold text-lg text-gray-800 dark:text-gray-100">@{{ ruta.nombre }}</h3>
                     <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -33,7 +33,7 @@
                     </div>
                 </div>
             </div>
-            <div v-if="!loading && filteredRutas.length === 0" class="p-4 text-center text-gray-500">
+            <div v-if="!estaCargando && rutasFiltradas.length === 0" class="p-4 text-center text-gray-500">
                 No se encontraron rutas.
             </div>
         </div>
@@ -46,62 +46,67 @@
 </div>
 
 <script>
+    // Reto DEW: Usamos Vue.js 3 desde CDN para gestionar la reactividad sin recargas.
     const { createApp, ref, computed, onMounted } = Vue;
 
     createApp({
         setup() {
-            const rutas = ref([]);
-            const searchQuery = ref('');
-            const loading = ref(true);
+            const listaRutas = ref([]);
+            const textoBusqueda = ref('');
+            const estaCargando = ref(true);
 
-            const getRutaImagen = (ruta) => {
+            // Función para obtener la imagen (o una por defecto)
+            const obtenerImagenRuta = (ruta) => {
                 return ruta.imagen || '/images/placeholder.png';
             };
 
-            const fetchRutas = async () => {
+            // Reto DEW: Consumo de API REST mediante Fetch
+            const cargarRutasDesdeApi = async () => {
                 try {
-                    const response = await fetch('/api/rutas');
-                    rutas.value = await response.json();
+                    const respuesta = await fetch('/api/rutas');
+                    listaRutas.value = await respuesta.json();
                 } catch (error) {
                     console.error("Error cargando rutas:", error);
                 } finally {
-                    loading.value = false;
+                    estaCargando.value = false;
                 }
             };
 
-            const filteredRutas = computed(() => {
-                if (!searchQuery.value) return rutas.value;
-                const query = searchQuery.value.toLowerCase();
-                return rutas.value.filter(r => r.nombre.toLowerCase().includes(query));
+            // Lógica de filtrado en tiempo real (Reto DEW)
+            const rutasFiltradas = computed(() => {
+                if (!textoBusqueda.value) return listaRutas.value;
+                const query = textoBusqueda.value.toLowerCase();
+                return listaRutas.value.filter(r => r.nombre.toLowerCase().includes(query));
             });
 
-            const initMap = () => {
-                // Centrado en Lanzarote
+            // Reto DOR: Inicialización del mapa interactivo con Leaflet
+            const inicializarMapa = () => {
+                // Centrado inicial en Lanzarote
                 map = L.map('map').setView([29.0469, -13.5899], 10);
 
-                // Mapa Topográfico de OpenTopoMap
+                // Capa de mapa topográfico (Reto DOR/Estética)
                 L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                     maxZoom: 17,
-                    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+                    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
                 }).addTo(map);
             };
 
-            const verDetalle = (id) => {
+            const irADetalle = (id) => {
                 window.location.href = `/rutas/${id}`;
             };
 
             onMounted(() => {
-                fetchRutas();
-                initMap();
+                cargarRutasDesdeApi();
+                inicializarMapa();
             });
 
             return {
-                rutas,
-                searchQuery,
-                filteredRutas,
-                loading,
-                verDetalle,
-                getRutaImagen
+                listaRutas,
+                textoBusqueda,
+                rutasFiltradas,
+                estaCargando,
+                irADetalle,
+                obtenerImagenRuta
             };
         }
     }).mount('#vue-app');

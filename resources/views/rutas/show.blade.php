@@ -4,26 +4,26 @@
 <div id="vue-app" class="relative w-full h-full flex flex-col md:flex-row">
     <!-- Panel Lateral -->
     <div class="w-full md:w-1/4 bg-white dark:bg-gray-800 shadow-xl z-20 flex flex-col h-auto md:h-full overflow-y-auto absolute md:relative bottom-0 max-h-[50%] md:max-h-full transition-all">
-        <div v-if="loading" class="p-8 text-center text-gray-500">
+        <div v-if="estaCargando" class="p-8 text-center text-gray-500">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-primary mb-4"></i>
             <p>Cargando ruta...</p>
         </div>
         
-        <div v-if="ruta && !loading" class="flex flex-col h-full">
+        <div v-if="rutaDetalle && !estaCargando" class="flex flex-col h-full">
             <!-- Header Image -->
-            <div class="h-40 bg-cover bg-center shrink-0 relative" :style="{ backgroundImage: 'url(' + getRutaImagen() + ')' }">
+            <div class="h-40 bg-cover bg-center shrink-0 relative" :style="{ backgroundImage: 'url(' + obtenerImagenFondo() + ')' }">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                 <button onclick="window.history.back()" class="absolute top-4 left-4 text-white hover:text-emerald-300 transition z-10 font-semibold drop-shadow-md">
                     <i class="fa-solid fa-arrow-left"></i> Volver
                 </button>
                 <div class="absolute bottom-4 left-4 right-4 z-10 text-white flex justify-between items-end">
-                    <h1 class="text-2xl font-bold drop-shadow-lg">@{{ ruta.nombre }}</h1>
+                    <h1 class="text-2xl font-bold drop-shadow-lg">@{{ rutaDetalle.nombre }}</h1>
                     @if(auth()->check() && auth()->user()->hasRole('admin'))
                         <div class="flex gap-2">
-                            <a :href="'/admin/rutas/' + ruta.id + '/edit'" class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-white/30">
+                            <a :href="'/admin/rutas/' + rutaDetalle.id + '/edit'" class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-white/30">
                                 <i class="fa-solid fa-pen-to-square"></i> Editar
                             </a>
-                            <button @click="eliminarRuta" class="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-red-400/30">
+                            <button @click="borrarRutaAdministrador" class="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white px-3 py-1 rounded text-sm transition border border-red-400/30">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
@@ -35,36 +35,40 @@
             <div class="p-6 overflow-y-auto flex-grow">
                 <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-6">
                 <span class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    <i class="fa-solid fa-layer-group text-primary"></i> @{{ ruta.dificultad || 'Media' }}
+                    <i class="fa-solid fa-layer-group text-primary"></i> @{{ rutaDetalle.dificultad || 'Media' }}
                 </span>
                 <span class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                    <i class="fa-solid fa-route text-primary"></i> @{{ ruta.distancia }} km
+                    <i class="fa-solid fa-route text-primary"></i> @{{ rutaDetalle.distancia }} km
                 </span>
             </div>
 
-            <!-- Clima / Alertas Mock (Reto DEW - Fetch y PWA) -->
+            <!-- Clima / Alertas Real-time (Reto DEW) -->
             <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                 <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2">
                     <i class="fa-solid fa-cloud-sun"></i> Condiciones Actuales
                 </h3>
-                <div class="flex justify-between items-center text-sm">
+                <div class="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                        <p class="text-gray-700 dark:text-gray-300">Viento: <span class="font-bold">@{{ clima.viento }} km/h</span></p>
-                        <p class="text-gray-700 dark:text-gray-300">Calima: <span class="font-bold">@{{ clima.calima }}</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Temp: <span class="font-bold">@{{ datosClima.temperatura }}°C</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Lluvia: <span class="font-bold">@{{ datosClima.lluvia }}%</span></p>
                     </div>
-                    <div v-if="clima.alerta" class="text-red-500 font-bold animate-pulse">
-                        <i class="fa-solid fa-triangle-exclamation"></i> ¡Precaución!
+                    <div>
+                        <p class="text-gray-700 dark:text-gray-300">Viento: <span class="font-bold">@{{ datosClima.viento }} km/h</span></p>
+                        <p class="text-gray-700 dark:text-gray-300">Calima: <span class="font-bold">@{{ datosClima.calima }}</span></p>
                     </div>
+                </div>
+                <div v-if="datosClima.alerta" class="mt-3 text-red-500 font-bold animate-pulse text-xs text-center border-t border-red-200 pt-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> ¡Precaución! Condiciones adversas
                 </div>
             </div>
 
-            <!-- Botones de Acción -            <!-- Botones de Acción -->
+            <!-- Botones de Acción -->
             <div class="flex flex-col gap-3">
-                <button @click="centrarEnUsuario" 
-                        :class="isTracking ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-emerald-600'"
+                <button @click="alternarSeguimientoGps" 
+                        :class="seguimientoGpsActivo ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-emerald-600'"
                         class="w-full text-white font-bold py-2 px-4 rounded shadow-md transition flex justify-center items-center gap-2">
-                    <i class="fa-solid" :class="isTracking ? 'fa-location-dot' : 'fa-location-crosshairs'"></i>
-                    @{{ isTracking ? 'Detener GPS' : 'Mi Ubicación GPS' }}
+                    <i class="fa-solid" :class="seguimientoGpsActivo ? 'fa-location-dot' : 'fa-location-crosshairs'"></i>
+                    @{{ seguimientoGpsActivo ? 'Detener GPS' : 'Mi Ubicación GPS' }}
                 </button>
             </div>
             
@@ -125,92 +129,111 @@
 </style>
 
 <script>
+    // Reto DEW: Usamos Vue.js 3 para gestionar la interactividad (GPS, Clima, API).
     const { createApp, ref, onMounted, onUnmounted } = Vue;
 
     createApp({
         setup() {
-            const ruta = ref(null);
-            const loading = ref(true);
-            const rutaId = {{ $id }};
-            const clima = ref({ viento: 15, calima: 'Leve', alerta: false });
-            const isTracking = ref(false);
-            let map = null;
-            let polyline = null;
-            let userMarker = null;
-            let watchId = null;
+            const rutaDetalle = ref(null);
+            const estaCargando = ref(true);
+            const idDeRuta = {{ $id }};
+            const datosClima = ref({ viento: 15, calima: 'Leve', temperatura: 22, lluvia: 0, alerta: false });
+            const seguimientoGpsActivo = ref(false);
+            
+            let mapaLeaflet = null;
+            let lineaRuta = null;
+            let marcadorUsuario = null;
+            let idSeguimientoGps = null;
 
-            const getRutaImagen = () => {
-                if (!ruta.value) return '/images/hero.png';
-                return ruta.value.imagen || '/images/hero.png';
+            const obtenerImagenFondo = () => {
+                if (!rutaDetalle.value) return '/images/hero.png';
+                return rutaDetalle.value.imagen || '/images/hero.png';
             };
 
-            const fetchRuta = async () => {
+            // Reto DEW: Consumo de API REST para obtener detalles
+            const cargarDetalleRuta = async () => {
                 try {
-                    const response = await fetch(`/api/rutas/${rutaId}`);
-                    ruta.value = await response.json();
-                    simularClima();
-                    dibujarRuta();
+                    const respuesta = await fetch(`/api/rutas/${idDeRuta}`);
+                    rutaDetalle.value = await respuesta.json();
+                    
+                    // Una vez tenemos la ruta, cargamos el clima y dibujamos el mapa
+                    consultarClimaReal();
+                    dibujarTrazadoRuta();
                 } catch (error) {
                     console.error("Error cargando detalles de la ruta:", error);
                 } finally {
-                    loading.value = false;
+                    estaCargando.value = false;
                 }
             };
 
-            const simularClima = async () => {
+            // Reto DEW: Integración con API de terceros (Open-Meteo)
+            const consultarClimaReal = async () => {
                 try {
                     let lat = 29.0469;
                     let lng = -13.5899;
-                    if (ruta.value && ruta.value.trazado && ruta.value.trazado.length > 0) {
-                        lat = ruta.value.trazado[0][0];
-                        lng = ruta.value.trazado[0][1];
+                    if (rutaDetalle.value && rutaDetalle.value.trazado && rutaDetalle.value.trazado.length > 0) {
+                        lat = rutaDetalle.value.trazado[0][0];
+                        lng = rutaDetalle.value.trazado[0][1];
                     }
-                    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m`);
-                    const data = await response.json();
-                    const windSpeed = data.current.wind_speed_10m || 0;
-                    let calima = 'Ninguna';
-                    if (windSpeed > 20) calima = 'Moderada';
-                    if (windSpeed > 35) calima = 'Intensa';
+                    
+                    // Pedimos viento, temperatura y probabilidad de lluvia
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m&hourly=precipitation_probability&forecast_days=1`;
+                    const respuestaClima = await fetch(url);
+                    const data = await respuestaClima.json();
+                    
+                    const velocidadViento = data.current.wind_speed_10m || 0;
+                    const temperaturaActual = data.current.temperature_2m || 0;
+                    const probLluvia = data.hourly.precipitation_probability[0] || 0;
+                    
+                    let estadoCalima = 'Ninguna';
+                    if (velocidadViento > 20) estadoCalima = 'Moderada';
+                    if (velocidadViento > 35) estadoCalima = 'Intensa';
 
-                    clima.value = {
-                        viento: windSpeed,
-                        calima: calima,
-                        alerta: windSpeed > 30 || calima === 'Intensa'
+                    datosClima.value = {
+                        viento: velocidadViento,
+                        temperatura: temperaturaActual,
+                        lluvia: probLluvia,
+                        calima: estadoCalima,
+                        alerta: velocidadViento > 30 || estadoCalima === 'Intensa' || probLluvia > 70
                     };
                 } catch (error) {
-                    console.error("Error fetching weather:", error);
-                    clima.value = { viento: 15, calima: 'Leve', alerta: false };
+                    console.error("Error consultando el clima:", error);
                 }
             };
 
-            const initMap = () => {
-                map = L.map('map').setView([29.0469, -13.5899], 10);
+            // Reto DOR: Inicialización de Leaflet
+            const inicializarMapa = () => {
+                mapaLeaflet = L.map('map').setView([29.0469, -13.5899], 10);
                 L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                     maxZoom: 17,
-                    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-                }).addTo(map);
+                    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+                }).addTo(mapaLeaflet);
             };
 
-            const dibujarRuta = () => {
-                if (!ruta.value || !ruta.value.trazado) return;
-                polyline = L.polyline(ruta.value.trazado, {
-                    color: '#e11d48',
+            // Reto DOR: Dibujar el KML procesado (GeoJSON/Polyline)
+            const dibujarTrazadoRuta = () => {
+                if (!rutaDetalle.value || !rutaDetalle.value.trazado) return;
+                
+                lineaRuta = L.polyline(rutaDetalle.value.trazado, {
+                    color: '#e11d48', // Color rojizo corporativo
                     weight: 5,
                     opacity: 0.8
-                }).addTo(map);
-                map.fitBounds(polyline.getBounds());
+                }).addTo(mapaLeaflet);
+                
+                // Ajustar el zoom automáticamente para ver toda la ruta
+                mapaLeaflet.fitBounds(lineaRuta.getBounds());
             };
 
-            const createUserIcon = (heading) => {
-                // Si no hay heading, no rotamos el contenedor interno
-                const rotation = heading !== null ? `transform: rotate(${heading}deg)` : '';
+            // Reto Especial: Marcador dinámico con flecha de dirección (Heading)
+            const crearIconoUsuario = (gradosDeRotacion) => {
+                const rotacionCss = gradosDeRotacion !== null ? `transform: rotate(${gradosDeRotacion}deg)` : '';
                 
                 return L.divIcon({
                     className: 'custom-user-icon',
                     html: `
                         <div class="user-location-container">
                             <div class="user-location-pulse"></div>
-                            <div class="user-location-arrow-box" style="${rotation}">
+                            <div class="user-location-arrow-box" style="${rotacionCss}">
                                 <svg viewBox="0 0 24 24">
                                     <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z"/>
                                 </svg>
@@ -222,15 +245,16 @@
                 });
             };
 
-            const centrarEnUsuario = () => {
-                if (isTracking.value) {
-                    // Detener seguimiento
-                    if (watchId) navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
-                    isTracking.value = false;
-                    if (userMarker) {
-                        map.removeLayer(userMarker);
-                        userMarker = null;
+            // Reto Especial: Seguimiento GPS en tiempo real
+            const alternarSeguimientoGps = () => {
+                if (seguimientoGpsActivo.value) {
+                    // Detener GPS
+                    if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
+                    idSeguimientoGps = null;
+                    seguimientoGpsActivo.value = false;
+                    if (marcadorUsuario) {
+                        mapaLeaflet.removeLayer(marcadorUsuario);
+                        marcadorUsuario = null;
                     }
                     return;
                 }
@@ -240,61 +264,61 @@
                     return;
                 }
 
-                isTracking.value = true;
+                seguimientoGpsActivo.value = true;
 
-                watchId = navigator.geolocation.watchPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        const heading = position.coords.heading; // Grados respecto al Norte (0-360)
+                idSeguimientoGps = navigator.geolocation.watchPosition(
+                    (posicion) => {
+                        const lat = posicion.coords.latitude;
+                        const lng = posicion.coords.longitude;
+                        const rumbo = posicion.coords.heading; // Rumbo en grados (0-360)
 
-                        if (userMarker) {
-                            userMarker.setLatLng([lat, lng]);
-                            userMarker.setIcon(createUserIcon(heading));
+                        if (marcadorUsuario) {
+                            marcadorUsuario.setLatLng([lat, lng]);
+                            marcadorUsuario.setIcon(crearIconoUsuario(rumbo));
                         } else {
-                            userMarker = L.marker([lat, lng], {
-                                icon: createUserIcon(heading),
+                            marcadorUsuario = L.marker([lat, lng], {
+                                icon: crearIconoUsuario(rumbo),
                                 zIndexOffset: 1000
-                            }).addTo(map);
-                            map.setView([lat, lng], 16);
+                            }).addTo(mapaLeaflet);
+                            mapaLeaflet.setView([lat, lng], 16);
                         }
                     },
                     (error) => {
-                        console.error("Error GPS: ", error);
-                        isTracking.value = false;
+                        console.error("Error de GPS:", error);
+                        seguimientoGpsActivo.value = false;
                     },
                     { enableHighAccuracy: true }
                 );
             };
 
-            const eliminarRuta = async () => {
+            const borrarRutaAdministrador = async () => {
                 if (!confirm("¿Seguro que quieres eliminar esta ruta?")) return;
                 try {
-                    const response = await fetch(`/admin/rutas/${rutaId}`, {
+                    const respuesta = await fetch(`/admin/rutas/${idDeRuta}`, {
                         method: 'DELETE',
                         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                     });
-                    if (response.ok) window.location.href = '/rutas';
-                } catch (error) { console.error("Error:", error); }
+                    if (respuesta.ok) window.location.href = '/rutas';
+                } catch (error) { console.error("Error al borrar:", error); }
             };
 
             onMounted(() => {
-                initMap();
-                fetchRuta();
+                inicializarMapa();
+                cargarDetalleRuta();
             });
 
             onUnmounted(() => {
-                if (watchId) navigator.geolocation.clearWatch(watchId);
+                if (idSeguimientoGps) navigator.geolocation.clearWatch(idSeguimientoGps);
             });
 
             return {
-                ruta,
-                loading,
-                clima,
-                isTracking,
-                centrarEnUsuario,
-                getRutaImagen,
-                eliminarRuta
+                rutaDetalle,
+                estaCargando,
+                datosClima,
+                seguimientoGpsActivo,
+                alternarSeguimientoGps,
+                obtenerImagenFondo,
+                borrarRutaAdministrador
             };
         }
     }).mount('#vue-app');

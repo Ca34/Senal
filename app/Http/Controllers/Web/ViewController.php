@@ -8,16 +8,27 @@ use Illuminate\Http\Request;
 
 class ViewController extends Controller
 {
+    /**
+     * Muestra la vista principal (Catálogo).
+     * Reto DOR: Diseño Mobile-first y mapas.
+     */
     public function index()
     {
         return view('rutas.index');
     }
 
+    /**
+     * Muestra la vista de detalle de una ruta.
+     * Reto DEW: Aquí es donde Vue.js consume la API y gestiona el GPS/Clima.
+     */
     public function show($id)
     {
         return view('rutas.show', compact('id'));
     }
 
+    /**
+     * Reto DSW: Gestión administrativa (CRUD) protegida por roles.
+     */
     public function create()
     {
         return view('admin.rutas.create');
@@ -25,42 +36,42 @@ class ViewController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $datosValidados = $request->validate([
             'nombre' => 'required|string|max:255',
             'dificultad' => 'required|string',
             'distancia' => 'required|numeric',
         ]);
 
-        Ruta::create($validated);
+        Ruta::create($datosValidados);
 
         return redirect()->route('rutas.index')->with('success', 'Ruta creada con éxito.');
     }
 
     public function edit($id)
     {
-        $ruta = Ruta::findOrFail($id);
-        return view('admin.rutas.edit', compact('ruta'));
+        $rutaParaEditar = Ruta::findOrFail($id);
+        return view('admin.rutas.edit', compact('rutaParaEditar'));
     }
 
     public function update(Request $request, $id)
     {
-        $ruta = Ruta::findOrFail($id);
+        $rutaExistente = Ruta::findOrFail($id);
         
-        $validated = $request->validate([
+        $datosParaActualizar = $request->validate([
             'nombre' => 'required|string|max:255',
             'dificultad' => 'required|string',
             'distancia' => 'required|numeric',
         ]);
 
-        $ruta->update($validated);
+        $rutaExistente->update($datosParaActualizar);
 
         return redirect()->route('rutas.show', $id)->with('success', 'Ruta actualizada.');
     }
 
     public function destroy($id)
     {
-        $ruta = Ruta::findOrFail($id);
-        $ruta->delete();
+        $rutaAEliminar = Ruta::findOrFail($id);
+        $rutaAEliminar->delete();
 
         return redirect()->route('rutas.index')->with('success', 'Ruta eliminada.');
     }
