@@ -1,8 +1,9 @@
 @extends('layouts.app_senal')
 
 @section('content')
-<!-- html2pdf.js para exportar fichas PDF -->
+<!-- html2pdf.js y html2canvas para exportar fichas PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <div id="vue-app" class="relative w-full h-full flex flex-col md:flex-row">
     <!-- Panel Lateral -->
@@ -211,9 +212,12 @@
 
             // Reto DOR: Inicialización de Leaflet
             const inicializarMapa = () => {
-                mapaLeaflet = L.map('map').setView([29.0469, -13.5899], 10);
+                mapaLeaflet = L.map('map', {
+                    renderer: L.canvas()
+                }).setView([29.0469, -13.5899], 10);
                 L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                     maxZoom: 17,
+                    crossOrigin: 'anonymous',
                     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
                 }).addTo(mapaLeaflet);
             };
@@ -321,8 +325,66 @@
                 } catch (error) { console.error("Error al borrar:", error); }
             };
 
-            const exportarAPdf = () => {
+            const exportarAPdf = async () => {
                 if (!rutaDetalle.value) return;
+
+                let mapImage = '';
+                try {
+                    const mapElement = document.getElementById('map');
+                    if (mapElement) {
+                        // Ocultar controles de zoom temporalmente para la foto
+                        const zoomControl = mapElement.querySelector('.leaflet-control-zoom');
+                        if (zoomControl) zoomControl.style.display = 'none';
+                        
+                        const mapPane = mapElement.querySelector('.leaflet-map-pane');
+                        let originalTransform = '';
+                        let originalLeft = '';
+                        let originalTop = '';
+
+                        if (mapPane) {
+                            originalTransform = mapPane.style.transform;
+                            originalLeft = mapPane.style.left;
+                            originalTop = mapPane.style.top;
+
+                            // Solución al problema de los desplazamientos en CSS Transform de Leaflet
+                            const matrix = window.getComputedStyle(mapPane).transform;
+                            if (matrix && matrix !== 'none') {
+                                const values = matrix.split('(')[1].split(')')[0].split(',');
+                                let x = 0, y = 0;
+                                if (matrix.indexOf('3d') !== -1) {
+                                    x = parseFloat(values[12]) || 0;
+                                    y = parseFloat(values[13]) || 0;
+                                } else {
+                                    x = parseFloat(values[4]) || 0;
+                                    y = parseFloat(values[5]) || 0;
+                                }
+                                mapPane.style.transform = 'none';
+                                mapPane.style.left = x + 'px';
+                                mapPane.style.top = y + 'px';
+                            }
+                        }
+
+                        const canvas = await html2canvas(mapElement, {
+                            useCORS: true,
+                            allowTaint: false, // Evita que se rompa el export si una imagen no tiene CORS
+                            scale: 1.5,
+                            scrollX: 0,
+                            scrollY: 0
+                        });
+                        mapImage = canvas.toDataURL('image/jpeg', 0.95);
+                        
+                        // Restaurar estado original del mapa
+                        if (mapPane) {
+                            mapPane.style.transform = originalTransform;
+                            mapPane.style.left = originalLeft;
+                            mapPane.style.top = originalTop;
+                        }
+
+                        if (zoomControl) zoomControl.style.display = '';
+                    }
+                } catch (e) {
+                    console.error("Error al capturar el mapa:", e);
+                }
 
                 const element = document.createElement('div');
                 element.className = 'p-8 bg-white text-gray-800 font-sans';
@@ -337,6 +399,18 @@
                     puntosHtml += '</ul>';
                 }
 
+                let mapaHtml = '';
+                if (mapImage) {
+                    mapaHtml = `
+                        <div style="margin-top: 20px;">
+                            <h3 style="font-size: 15px; font-weight: bold; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 10px;">Visualización del Trazado</h3>
+                            <div style="text-align: center; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px; background: #f9fafb;">
+                                <img src="${mapImage}" style="max-width: 100%; height: auto; border-radius: 4px;" />
+                            </div>
+                        </div>
+                    `;
+                }
+
                 element.innerHTML = `
                     <div style="border-bottom: 3px solid #10b981; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -347,24 +421,26 @@
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <h2 style="font-size: 20px; font-weight: bold; color: #10b981; margin-top: 0; margin-bottom: 6px;">\${rutaDetalle.value.nombre}</h2>
+                        <h2 style="font-size: 20px; font-weight: bold; color: #10b981; margin-top: 0; margin-bottom: 6px;">${rutaDetalle.value.nombre}</h2>
                         <div style="display: flex; gap: 20px; font-size: 14px; color: #374151; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid #e5e7eb;">
-                            <span><strong>Dificultad:</strong> \${rutaDetalle.value.dificultad || 'Media'}</span>
-                            <span><strong>Distancia:</strong> \${rutaDetalle.value.distancia} km</span>
+                            <span><strong>Dificultad:</strong> ${rutaDetalle.value.dificultad || 'Media'}</span>
+                            <span><strong>Distancia:</strong> ${rutaDetalle.value.distancia} km</span>
                         </div>
                     </div>
                     
                     <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
                         <h3 style="font-size: 14px; font-weight: bold; color: #065f46; margin-top: 0; margin-bottom: 8px;">Condiciones del Clima (Real-time)</h3>
                         <div style="display: flex; gap: 20px; font-size: 13px; color: #047857;">
-                            <div>Temperatura: <strong>\${datosClima.value.temperatura}°C</strong></div>
-                            <div>Viento: <strong>\${datosClima.value.viento} km/h</strong></div>
-                            <div>Lluvia: <strong>\${datosClima.value.lluvia}%</strong></div>
-                            <div>Calima: <strong>\${datosClima.value.calima}</strong></div>
+                            <div>Temperatura: <strong>${datosClima.value.temperatura}°C</strong></div>
+                            <div>Viento: <strong>${datosClima.value.viento} km/h</strong></div>
+                            <div>Lluvia: <strong>${datosClima.value.lluvia}%</strong></div>
+                            <div>Calima: <strong>${datosClima.value.calima}</strong></div>
                         </div>
                     </div>
 
-                    \${puntosHtml}
+                    ${puntosHtml}
+
+                    ${mapaHtml}
 
                     <div style="margin-top: 40px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 10px;">
                         Documento oficial generado dinámicamente desde Senal - PWA de Senderismo.
@@ -373,9 +449,9 @@
 
                 const opt = {
                     margin:       15,
-                    filename:     `ficha_\${rutaDetalle.value.nombre.toLowerCase().replace(/\\s+/g, '_')}.pdf`,
+                    filename:     `ficha_${rutaDetalle.value.nombre.toLowerCase().replace(/\s+/g, '_')}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
+                    html2canvas:  { scale: 2, useCORS: true },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
