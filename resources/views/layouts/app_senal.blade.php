@@ -65,6 +65,7 @@
                     @elseif(auth()->user()->hasRole('gestor'))
                         <span class="bg-blue-500 text-white text-[10px] px-1 rounded font-bold">GESTOR</span>
                     @endif
+                    <a href="{{ route('profile.edit') }}" class="hover:text-emerald-200 text-sm">Perfil</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="hover:text-emerald-200 text-sm">Salir</button>
